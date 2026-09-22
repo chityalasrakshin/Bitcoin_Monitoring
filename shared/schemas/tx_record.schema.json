@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NormalizedTxRecord",
+  "description": "ChainSentry canonical Bitcoin transaction and network telemetry schema",
+  "type": "object",
+  "required": [
+    "txid",
+    "timestamp",
+    "input_addresses",
+    "output_addresses",
+    "input_amounts",
+    "output_amounts",
+    "source"
+  ],
+  "properties": {
+    "txid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$",
+      "description": "Bitcoin transaction hash (64-character hexadecimal)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of the transaction or observation"
+    },
+    "input_addresses": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of input wallet addresses"
+    },
+    "output_addresses": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of output recipient addresses"
+    },
+    "input_amounts": {
+      "type": "array",
+      "items": { "type": "number", "minimum": 0 },
+      "description": "Amounts in BTC for each input"
+    },
+    "output_amounts": {
+      "type": "array",
+      "items": { "type": "number", "minimum": 0 },
+      "description": "Amounts in BTC for each output"
+    },
+    "fee": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Transaction fee in BTC"
+    },
+    "script_type": {
+      "type": "string",
+      "enum": ["P2PKH", "P2SH", "P2WPKH", "P2WSH", "P2TR", "MULTISIG", "UNKNOWN", "p2pkh", "p2sh", "p2wpkh", "p2wsh", "p2tr", "unknown"],
+      "default": "UNKNOWN",
+      "description": "Script type of the transaction outputs/inputs"
+    },
+    "src_ip": {
+      "type": ["string", "null"],
+      "description": "Source IP address observed relaying the transaction"
+    },
+    "dst_ip": {
+      "type": ["string", "null"],
+      "description": "Destination peer IP address"
+    },
+    "src_port": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Source TCP port"
+    },
+    "dst_port": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Destination TCP port"
+    },
+    "geo_country": {
+      "type": ["string", "null"],
+      "description": "ISO 3166-1 alpha-2 country code resolved from src_ip"
+    },
+    "asn": {
+      "type": ["string", "integer", "null"],
+      "description": "Autonomous System Number (e.g. AS64576 or 64576) resolved from src_ip"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["elliptic", "esplora", "bitnodes", "manual_upload", "p2p_capture", "synthetic"],
+      "description": "Data origin of the record"
+    },
+    "provenance": {
+      "type": ["string", "null"],
+      "description": "Optional provenance tag"
+    },
+    "dataset_id": {
+      "type": ["string", "null"],
+      "description": "Optional dataset identifier"
+    }
+  }
+}

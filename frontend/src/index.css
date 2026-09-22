@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #0A0B0D;
+    --bg-surface: #111318;
+    --bg-surface-elevated: #161A22;
+    --border-subtle: #1E2330;
+    --border-active: #2C3347;
+    --text-primary: #E2E8F0;
+    --text-muted: #8E9BAE;
+    --risk-critical: #EF4444;
+    --risk-high: #F97316;
+    --risk-medium: #F59E0B;
+    --risk-low: #10B981;
+    --accent-blue: #3B82F6;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  /* Custom scrollbar for dense data panels */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0D0F14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #202636;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2F374E;
+  }
+}
+
+.mono-hash {
+  font-family: 'JetBrains Mono', monospace;
+  font-feature-settings: "zero" 1;
+}
+
+/* Cytoscape container reset */
+.cytoscape-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+}
