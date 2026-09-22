@@ -7,9 +7,13 @@ import {
   Cpu,
   RefreshCw,
   FolderOpen,
-  Network
+  Network,
+  Share2,
+  Sparkles,
+  Layers,
+  Database
 } from 'lucide-react';
-import { fetchAlerts, fetchCases, fetchGraphStats, runSamplePipeline } from '../../lib/api';
+import { fetchAlerts, fetchCases, fetchGraphStats, runSamplePipeline, liveTraceBlockchain } from '../../lib/api';
 import { Alert, Case } from '../../types';
 import { RiskDistributionChart } from '../../components/charts/RiskDistributionChart';
 
@@ -20,6 +24,8 @@ export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [pipelineRunning, setPipelineRunning] = useState(false);
+  const [quickTraceInput, setQuickTraceInput] = useState('');
+  const [tracingLive, setTracingLive] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -33,7 +39,7 @@ export const DashboardPage: React.FC = () => {
       setCases(casesData);
       setStats(statsData);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load dashboard data:', err);
     } finally {
       setLoading(false);
     }
@@ -55,64 +61,119 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleQuickTrace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTraceInput.trim()) return;
+    setTracingLive(true);
+    try {
+      await liveTraceBlockchain(quickTraceInput.trim());
+      navigate(`/investigation?entity=${encodeURIComponent(quickTraceInput.trim())}`);
+    } catch (err: any) {
+      // If live trace fails or entity isn't live, navigate to investigation anyway to attempt local lookup
+      navigate(`/investigation?entity=${encodeURIComponent(quickTraceInput.trim())}`);
+    } finally {
+      setTracingLive(false);
+    }
+  };
+
   const riskScores = alerts.map((a) => a.combined_confidence || 0);
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full max-w-7xl mx-auto">
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-100">
-            Forensic Surveillance Dashboard
+          <h1 className="text-xl font-bold tracking-tight text-slate-100 flex items-center space-x-2">
+            <span>Forensic Surveillance & Intelligence Dashboard</span>
           </h1>
           <p className="text-xs text-slate-400 font-mono mt-0.5">
-            CORRELATING P2P NETWORK TELEMETRY WITH BITCOIN UTXO MOVEMENT
+            CORRELATING P2P NETWORK TELEMETRY &bull; BITCOIN UTXO MOVEMENT &bull; 3D SPATIAL TOPOLOGY
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+
+        <div className="flex items-center space-x-2.5">
+          <form onSubmit={handleQuickTrace} className="flex items-center space-x-1.5">
+            <input
+              type="text"
+              placeholder="Live trace address or txid..."
+              value={quickTraceInput}
+              onChange={(e) => setQuickTraceInput(e.target.value)}
+              className="bg-[#111318] border border-[#1E2330] rounded px-3 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-blue-500 w-52 md:w-64"
+            />
+            <button
+              type="submit"
+              disabled={tracingLive || !quickTraceInput.trim()}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-950 text-white rounded text-xs font-mono font-medium flex items-center space-x-1 transition"
+            >
+              <Sparkles className={`w-3 h-3 ${tracingLive ? 'animate-spin' : ''}`} />
+              <span>{tracingLive ? 'Tracing...' : 'Trace'}</span>
+            </button>
+          </form>
+
           <button
             onClick={handleRunSample}
             disabled={pipelineRunning}
             className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 text-white rounded text-xs font-mono font-medium transition"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${pipelineRunning ? 'animate-spin' : ''}`} />
-            <span>{pipelineRunning ? 'CORRELATING...' : 'RUN SEED-42 PIPELINE'}</span>
+            <span>{pipelineRunning ? 'CORRELATING...' : 'RUN PIPELINE'}</span>
           </button>
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Metrics Row - 100% Dynamic */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-[#111318] border border-[#1E2330] rounded p-4">
-          <div className="text-[11px] font-mono text-slate-400 uppercase">On-Chain Transactions</div>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono text-slate-400 uppercase">On-Chain Transactions</span>
+            <Database className="w-4 h-4 text-emerald-400" />
+          </div>
           <div className="text-2xl font-bold font-mono text-slate-100 mt-1">
-            {stats.transactions_count || 109}
+            {stats.transactions_count ?? 0}
           </div>
-          <div className="text-[10px] text-emerald-400 font-mono mt-1">100% Ingested & Verified</div>
+          <div className="text-[10px] text-emerald-400 font-mono mt-1 flex items-center space-x-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Persisted in Relational DB</span>
+          </div>
         </div>
 
         <div className="bg-[#111318] border border-[#1E2330] rounded p-4">
-          <div className="text-[11px] font-mono text-slate-400 uppercase">P2P Network Relays</div>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono text-slate-400 uppercase">P2P Network Relays</span>
+            <Network className="w-4 h-4 text-cyan-400" />
+          </div>
           <div className="text-2xl font-bold font-mono text-cyan-400 mt-1">
-            {stats.ips_count || 368}
+            {stats.ips_count ?? 0}
           </div>
-          <div className="text-[10px] text-slate-400 font-mono mt-1">Sub-second Latency Mapping</div>
+          <div className="text-[10px] text-slate-400 font-mono mt-1">
+            Sub-second Latency Mapping
+          </div>
         </div>
 
         <div className="bg-[#111318] border border-[#1E2330] rounded p-4">
-          <div className="text-[11px] font-mono text-slate-400 uppercase">Flagged Typologies</div>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono text-slate-400 uppercase">Flagged Typologies</span>
+            <ShieldAlert className="w-4 h-4 text-red-400" />
+          </div>
           <div className="text-2xl font-bold font-mono text-red-400 mt-1">
-            {alerts.length > 0 ? alerts.length : 47}
+            {alerts.length}
           </div>
-          <div className="text-[10px] text-red-400 font-mono mt-1">Peeling Chains, Mixers, Structuring</div>
+          <div className="text-[10px] text-red-400 font-mono mt-1">
+            AI Anomaly & Risk Fused
+          </div>
         </div>
 
         <div className="bg-[#111318] border border-[#1E2330] rounded p-4">
-          <div className="text-[11px] font-mono text-slate-400 uppercase">Active Cases</div>
-          <div className="text-2xl font-bold font-mono text-amber-400 mt-1">
-            {cases.length > 0 ? cases.length : 1}
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono text-slate-400 uppercase">3D Graph Topologies</span>
+            <Layers className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="text-[10px] text-amber-400 font-mono mt-1">SIH26146 Lead Dossier</div>
+          <div className="text-2xl font-bold font-mono text-purple-400 mt-1">
+            {stats.total_nodes ?? 0}
+          </div>
+          <div className="text-[10px] text-purple-400 font-mono mt-1">
+            {stats.clusters_count ?? 0} Clustered Entities
+          </div>
         </div>
       </div>
 
@@ -129,7 +190,7 @@ export const DashboardPage: React.FC = () => {
               onClick={() => navigate('/alerts')}
               className="text-xs text-blue-400 hover:text-blue-300 font-mono flex items-center space-x-1"
             >
-              <span>View All Alerts</span>
+              <span>View All Alerts ({alerts.length})</span>
               <ArrowRight className="w-3 h-3" />
             </button>
           </div>
@@ -167,8 +228,8 @@ export const DashboardPage: React.FC = () => {
                     </div>
                     <div className="text-[10px] text-slate-500">CONFIDENCE</div>
                   </div>
-                  <button className="px-2 py-1 bg-[#1E2330] hover:bg-blue-600 text-slate-300 hover:text-white rounded text-[11px] font-mono">
-                    Trace
+                  <button className="px-2.5 py-1 bg-[#1E2330] hover:bg-blue-600 text-slate-300 hover:text-white rounded text-[11px] font-mono">
+                    3D Trace
                   </button>
                 </div>
               </div>
@@ -176,7 +237,7 @@ export const DashboardPage: React.FC = () => {
 
             {alerts.length === 0 && (
               <div className="p-8 text-center text-slate-500 font-mono text-xs">
-                No alerts detected. Click "Run Seed-42 Pipeline" above to ingest and analyze.
+                No alerts currently in queue. Ingest a dataset or run on-chain trace above.
               </div>
             )}
           </div>
@@ -196,7 +257,7 @@ export const DashboardPage: React.FC = () => {
           <div className="bg-[#111318] border border-[#1E2330] rounded p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold text-slate-300 uppercase font-mono tracking-wider">
-                Investigative Cases
+                Investigative Cases ({cases.length})
               </h3>
               <button
                 onClick={() => navigate('/cases')}
@@ -216,10 +277,16 @@ export const DashboardPage: React.FC = () => {
                   <div className="font-medium text-slate-200 text-xs truncate">{c.title}</div>
                   <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-1">
                     <span className="text-amber-400 uppercase">{c.status}</span>
-                    <span>{c.alert_count || 15} Linked Leads</span>
+                    <span>{c.alert_count ?? 0} Linked Leads</span>
                   </div>
                 </div>
               ))}
+
+              {cases.length === 0 && (
+                <div className="p-4 text-center text-slate-500 font-mono text-xs">
+                  No active cases open.
+                </div>
+              )}
             </div>
           </div>
         </div>

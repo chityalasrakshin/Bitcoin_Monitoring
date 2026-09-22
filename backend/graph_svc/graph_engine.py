@@ -233,3 +233,73 @@ class ForensicGraphEngine:
                 "ips_count": ips,
                 "clusters_count": len(set(self.wallet_clusters.values()))
             }
+
+    def get_wallets_paginated(
+        self,
+        skip: int = 0,
+        limit: int = 50,
+        search: Optional[str] = None,
+        sort_by: str = "risk"
+    ) -> Dict[str, Any]:
+        """Return paginated list of wallet entities with risk scores and clusters."""
+        with self._lock:
+            wallets = []
+            search_clean = search.strip().lower() if search else None
+
+            for node_id, attrs in self.graph.nodes(data=True):
+                if attrs.get("node_type") != "wallet":
+                    continue
+                if search_clean and search_clean not in node_id.lower():
+                    continue
+
+                wallets.append({
+                    "address": node_id,
+                    "risk_score": float(attrs.get("risk_score", 0.0)),
+                    "cluster_id": attrs.get("cluster_id"),
+                    "tags": attrs.get("tags", [])
+                })
+
+            if sort_by == "risk":
+                wallets.sort(key=lambda w: w["risk_score"], reverse=True)
+            elif sort_by == "address":
+                wallets.sort(key=lambda w: w["address"])
+
+            total = len(wallets)
+            items = wallets[skip : skip + limit]
+            return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+    def get_transactions_paginated(
+        self,
+        skip: int = 0,
+        limit: int = 50,
+        search: Optional[str] = None,
+        sort_by: str = "time"
+    ) -> Dict[str, Any]:
+        """Return paginated list of transaction entities with values, fees, and timestamps."""
+        with self._lock:
+            txs = []
+            search_clean = search.strip().lower() if search else None
+
+            for node_id, attrs in self.graph.nodes(data=True):
+                if attrs.get("node_type") != "transaction":
+                    continue
+                if search_clean and search_clean not in node_id.lower():
+                    continue
+
+                txs.append({
+                    "txid": node_id,
+                    "total_value": float(attrs.get("total_value", 0.0)),
+                    "fee": float(attrs.get("fee", 0.0)),
+                    "timestamp": attrs.get("timestamp"),
+                    "script_type": attrs.get("script_type", "UNKNOWN")
+                })
+
+            if sort_by == "value":
+                txs.sort(key=lambda t: t["total_value"], reverse=True)
+            else:
+                txs.sort(key=lambda t: str(t.get("timestamp", "")), reverse=True)
+
+            total = len(txs)
+            items = txs[skip : skip + limit]
+            return {"items": items, "total": total, "skip": skip, "limit": limit}
+

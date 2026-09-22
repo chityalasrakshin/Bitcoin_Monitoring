@@ -110,6 +110,34 @@ export async function fetchGraphStats(): Promise<Record<string, any>> {
   return request<Record<string, any>>('/graph/stats');
 }
 
+export async function fetchWallets(params?: {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  sort_by?: string;
+}): Promise<{ items: any[]; total: number; skip: number; limit: number }> {
+  const sp = new URLSearchParams();
+  if (params?.skip !== undefined) sp.set('skip', String(params.skip));
+  if (params?.limit !== undefined) sp.set('limit', String(params.limit));
+  if (params?.search) sp.set('search', params.search);
+  if (params?.sort_by) sp.set('sort_by', params.sort_by);
+  return request<{ items: any[]; total: number; skip: number; limit: number }>(`/graph/wallets?${sp.toString()}`);
+}
+
+export async function fetchTransactions(params?: {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  sort_by?: string;
+}): Promise<{ items: any[]; total: number; skip: number; limit: number }> {
+  const sp = new URLSearchParams();
+  if (params?.skip !== undefined) sp.set('skip', String(params.skip));
+  if (params?.limit !== undefined) sp.set('limit', String(params.limit));
+  if (params?.search) sp.set('search', params.search);
+  if (params?.sort_by) sp.set('sort_by', params.sort_by);
+  return request<{ items: any[]; total: number; skip: number; limit: number }>(`/graph/transactions?${sp.toString()}`);
+}
+
 export async function fetchAddressTags(address: string): Promise<AttributionTag[]> {
   return request<AttributionTag[]>(`/graph/tags/${encodeURIComponent(address)}`);
 }
@@ -120,6 +148,13 @@ export async function addAddressTag(data: { address: string; tag: string; catego
     body: JSON.stringify(data),
   });
 }
+
+export async function liveTraceBlockchain(entity: string): Promise<IngestStats> {
+  return request<IngestStats>(`/ingestion/live-trace?entity=${encodeURIComponent(entity)}`, {
+    method: 'POST',
+  });
+}
+
 
 // Ingestion & Pipeline
 export async function runSamplePipeline(): Promise<IngestStats> {

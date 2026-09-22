@@ -4,7 +4,7 @@ Coordinates parsing, correlation, graph construction, clustering, AI anomaly sco
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Query
 from sqlalchemy.orm import Session
 
 from backend.chainsentry_common.db import get_db
@@ -103,6 +103,46 @@ def execute_full_pipeline(
     for a in alerts:
         crud.create_alert(db, a)
 
+    for tx in transactions:
+        existing = db.query(RawTransaction).filter(RawTransaction.txid == tx.txid).first()
+        if not existing:
+            raw_tx = RawTransaction(
+                txid=tx.txid,
+                ts=tx.timestamp,
+                input_addresses=tx.input_addresses,
+                output_addresses=tx.output_addresses,
+                input_amounts=tx.input_amounts,
+                output_amounts=tx.output_amounts,
+                fee=tx.fee,
+                script_type=tx.script_type,
+                source=tx.source,
+                provenance=tx.provenance,
+                dataset_id=tx.dataset_id
+            )
+            db.add(raw_tx)
+
+    for obs in observations:
+        existing = db.query(RawNetworkObservation).filter(
+            RawNetworkObservation.observation_id == obs.observation_id
+        ).first()
+        if not existing:
+            raw_obs = RawNetworkObservation(
+                observation_id=obs.observation_id,
+                ts=obs.timestamp,
+                src_ip=obs.src_ip,
+                dst_ip=obs.dst_ip,
+                src_port=obs.src_port,
+                dst_port=obs.dst_port,
+                txid=obs.txid,
+                provenance=obs.provenance,
+                dataset_id=obs.dataset_id,
+                geo_country=obs.geo_country,
+                asn=str(obs.asn) if obs.asn else None
+            )
+            db.add(raw_obs)
+
+    db.commit()
+
     duration = time.time() - start_time
     stats = IngestStats(
         total_transactions_ingested=len(transactions),
@@ -148,6 +188,32 @@ def run_sample_pipeline(
     stats = execute_full_pipeline(transactions, observations, db, actor_id=current_user.id)
     return stats
 
+@router.post("/live-trace", response_model=IngestStats)
+def live_trace_blockchain(
+    entity: str = Query(..., description="Live Bitcoin address or transaction hash to trace"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin", "lead_investigator", "investigator"))
+):
+    """Dynamically trace and ingest live on-chain Bitcoin data for any address or TXID."""
+    from backend.ingestion_svc.connectors.blockchain import LiveBlockchainConnector
+    connector = LiveBlockchainConnector()
+    entity_clean = entity.strip()
+
+    if len(entity_clean) == 64 and all(c in "0123456789abcdefABCDEF" for c in entity_clean):
+        tx = connector.fetch_transaction(entity_clean)
+        txs = [tx] if tx else []
+    else:
+        txs = connector.fetch_address_transactions(entity_clean, limit=15)
+
+    if not txs:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No live on-chain transactions found for entity: {entity_clean}"
+        )
+
+    stats = execute_full_pipeline(txs, [], db, actor_id=current_user.id)
+    return stats
+
 @router.post("/upload", response_model=IngestStats)
 async def upload_files(
     tx_file: UploadFile = File(..., description="Transactions CSV, JSON, or XML"),
@@ -177,3 +243,4 @@ async def upload_files(
 
     stats = execute_full_pipeline(transactions, observations, db, actor_id=current_user.id)
     return stats
+

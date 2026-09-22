@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/three": "^0.186.0",
+    "3d-force-graph": "^1.80.0",
     "cytoscape": "^3.30.2",
     "echarts": "^5.5.1",
     "echarts-for-react": "^3.0.2",
@@ -18,7 +20,8 @@
     "react-cytoscapejs": "^2.0.0",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
-    "react-router-dom": "^6.27.0"
+    "react-router-dom": "^6.27.0",
+    "three": "^0.186.0"
   },
   "devDependencies": {
     "@types/cytoscape": "^3.19.16",
