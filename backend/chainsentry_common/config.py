@@ -3,7 +3,8 @@ Loads environment variables and sets sensible defaults for offline, self-contain
 """
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any, Union
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -20,6 +21,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     API_PREFIX: str = "/api"
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
 
     # Database: SQLite by default for zero-daemon offline mode; PostgreSQL for production
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'chainsentry.db'}"
@@ -43,6 +46,27 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
         "http://127.0.0.1:8000"
     ]
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_connection(cls, v: Any) -> Any:
+        if isinstance(v, str) and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v_stripped = v.strip()
+            if v_stripped.startswith("[") and v_stripped.endswith("]"):
+                import json
+                try:
+                    return json.loads(v_stripped)
+                except Exception:
+                    pass
+            return [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+        return v
 
     # Task Processing: eager synchronous execution when Redis is not running
     CELERY_ALWAYS_EAGER: bool = True

@@ -110,10 +110,11 @@ app = FastAPI(
 )
 
 # CORS configuration
+allow_all_origins = "*" in settings.CORS_ORIGINS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=settings.CORS_ORIGINS if not allow_all_origins else ["*"],
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -145,9 +146,26 @@ def healthcheck():
         "version": "1.0.0"
     }
 
-# Mount Frontend SPA if built
+# Mount Frontend SPA if built (supports React Router client-side routing & page refreshes)
 frontend_dist = settings.BASE_DIR / "frontend" / "dist"
 if frontend_dist.exists():
     from fastapi.staticfiles import StaticFiles
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+    from fastapi.responses import FileResponse
+
+    assets_dir = frontend_dist / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(request: Request, full_path: str):
+        # Do not intercept API routes, OpenAPI spec, or documentation UIs
+        if full_path.startswith("api") or full_path in ("docs", "redoc", "openapi.json"):
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        file_path = frontend_dist / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        index_file = frontend_dist / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        return JSONResponse(status_code=404, content={"detail": "Frontend assets not found"})
 

@@ -1,0 +1,27 @@
+services:
+  chainsentry:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chainsentry-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - SECRET_KEY=${SECRET_KEY:-chainsentry-prod-super-secret-key-replace-in-env-0987654321}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/chainsentry.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - ENABLE_NEO4J=${ENABLE_NEO4J:-false}
+    volumes:
+      - chainsentry-storage:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  chainsentry-storage:

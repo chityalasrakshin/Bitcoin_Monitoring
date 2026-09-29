@@ -6,7 +6,7 @@
 [![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests: 11 Passed](https://img.shields.io/badge/Tests-11%20Passed-brightgreen.svg)]()
+[![Tests: 14 Passed](https://img.shields.io/badge/Tests-14%20Passed-brightgreen.svg)]()
 
 ChainSentry is a law-enforcement-grade, offline-first Bitcoin transaction monitoring and forensics investigation platform. It solves **Problem Statement 5 (SIH26146)** by ingesting peer-to-peer relay network observations and blockchain ledgers, attributing pseudo-anonymous addresses, detecting laundering typologies (Peeling Chains, CoinJoins, Structured Rapid Hops), and producing court-admissible dossiers with cryptographic audit logging.
 
@@ -77,7 +77,7 @@ ChainSentry operates with an offline-first, dual-engine design. It requires **no
 ### Prerequisites
 - **Python**: 3.10+ (Recommended: Python 3.12)
 - **Node.js**: 18+ (Required only if modifying/rebuilding the frontend)
-- **PowerShell** or **Bash**
+- **Docker** *(optional, for containerized deployment)*
 
 ### 1. Backend Setup
 Clone or navigate to the repository directory:
@@ -96,20 +96,27 @@ Install backend dependencies:
 pip install -r backend/requirements.txt
 ```
 
-### 2. Bootstrap Reference Intelligence & Demo Data
-Seed the local SQLite database (`chainsentry.db`) with OFAC sanctions, 87 GraphSense TagPack clusters, 109 test transactions, 368 network observations, and initial investigator accounts:
-```bash
-python scripts/bootstrap_data.py
-python scripts/seed_demo_case.py
-```
-
-### 3. Launch the Application Server
-Run the production FastAPI server (serves both the REST API and the compiled React SPA):
+### 2. Launch the Application Server
+Run the unified server (serves the REST API and the compiled React SPA):
 ```powershell
-$env:PYTHONPATH="."
-.\.venv\Scripts\uvicorn.exe backend.api_service.main:app --host 127.0.0.1 --port 8000
+python run.py
+```
+For active development with hot code reloading:
+```powershell
+python run.py --reload
 ```
 Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
+
+---
+
+## 🚢 Production Deployment
+
+For complete instructions on deploying with **Docker**, **Docker Compose**, **Render**, **Railway**, **Google Cloud Run**, or **Vercel + Backend API**, see **[DEPLOYMENT.md](file:///c:/Users/chity/Documents/Projects/Bitcoin_Monitoring/DEPLOYMENT.md)**.
+
+Quick Docker start:
+```bash
+docker compose up --build -d
+```
 
 ---
 
@@ -168,18 +175,20 @@ Bitcoin_Monitoring/
 │   ├── tests/                  # Pytest automated test suite
 │   └── requirements.txt        # Backend dependencies
 ├── frontend/
-│   ├── src/
-│   │   ├── components/         # Cytoscape graph canvas, ECharts Sankey & distribution
-│   │   ├── pages/              # Dashboard, Investigation, Alerts, Cases, Reports
-│   │   ├── services/           # Axios API client with automatic JWT handling
-│   │   └── App.tsx             # React Router and authentication context
+│   ├── src/                    # React 18 + TS application source
 │   ├── dist/                   # Production-compiled single-page application
-│   └── package.json            # Node.js dependencies & scripts
+│   └── package.json            # Node.js dependencies & build scripts
 ├── data/
 │   ├── reference/              # GraphSense TagPacks, OFAC sanctioned addresses
 │   └── sample/                 # Seed-42 transactions & network observations
 ├── docs/                       # Technical write-up, API reference, blueprint
 ├── scripts/                    # bootstrap_data.py, seed_demo_case.py
+├── Dockerfile                  # Multi-stage production container build
+├── docker-compose.yml          # Container orchestration with data persistence
+├── build.sh                    # PaaS build script (Render/Railway/Linux)
+├── run.py                      # Application runner with dynamic $PORT support
+├── DEPLOYMENT.md               # Cloud & container deployment documentation
+├── .env.example                # Environment variables template
 ├── pytest.ini                  # Pytest configuration
 └── README.md                   # Project overview & quickstart
 ```

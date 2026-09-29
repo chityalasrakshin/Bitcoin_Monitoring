@@ -54,3 +54,9 @@ frontend/node_modules/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Documents & Logs
+*.pdf
+*.log
+logs/
+.cache/

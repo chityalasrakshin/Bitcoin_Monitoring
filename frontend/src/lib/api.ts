@@ -2,7 +2,8 @@ import {
   User, Case, Alert, GraphData, IngestStats, SearchResult, AttributionTag
 } from '../types';
 
-const API_BASE = '/api';
+const envApi = (import.meta as any).env?.VITE_API_BASE_URL;
+const API_BASE = envApi ? `${envApi.replace(/\/$/, '')}/api` : '/api';
 
 function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('chainsentry_token');
